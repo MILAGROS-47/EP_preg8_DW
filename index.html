@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Formulario de Registro de Roles</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .container {
+      margin-top: 50px;
+    }
+    .error-message {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Formulario de Registro de Roles</h2>
+    <form id="role-form">
+      <div class="form-group">
+        <label for="name">Nombre:</label>
+        <input type="text" class="form-control" id="name" required>
+      </div>
+      <div class="form-group">
+        <label for="last-name">Apellidos:</label>
+        <input type="text" class="form-control" id="last-name" required>
+      </div>
+      <div class="form-group">
+        <label for="username">Nombre de Usuario:</label>
+        <input type="text" class="form-control" id="username" required>
+      </div>
+      <div class="form-group">
+        <label for="role">Rol:</label>
+        <select class="form-control" id="role" required>
+          <option value="admin">Administrador</option>
+          <option value="contador">Contador</option>
+          <option value="analista">Analista</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="status">Estado:</label><br>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="status" id="status-activo" value="activo" checked>
+          <label class="form-check-label" for="status-activo">Activo</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="status" id="status-inactivo" value="inactivo">
+          <label class="form-check-label" for="status-inactivo">Inactivo</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="access-date">Fecha Límite de Acceso:</label>
+        <input type="date" class="form-control" id="access-date" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Registrar</button>
+    </form>
+    <div id="user-list" class="mt-4">
+      <h3>Usuarios Registrados</h3>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Nombres</th>
+            <th>Apellidos</th>
+            <th>Nombre de Usuario</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Fecha Límite de Acceso</th>
+            <th>Fecha de Registro</th>
+            <th>Días Restantes de Acceso</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Aquí se mostrarán los usuarios registrados -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    // Modelo
+    var users = [];
+
+    // Controlador
+    $(document).ready(function() {
+      $('#role-form').submit(function(event) {
+        event.preventDefault();
+        var name = $('#name').val();
+        var lastName = $('#last-name').val();
+        var username = $('#username').val();
+        var role = $('#role').val();
+        var status = $('input[name="status"]:checked').val();
+        var accessDate = $('#access-date').val();
+
+        if (name && lastName && username && role && status && accessDate) {
+          if (!isUsernameRegistered(username)) {
+            var user = {
+              name: name,
+              lastName: lastName,
+              username: username,
+              role: role,
+              status: status,
+              accessDate: accessDate,
+              registrationDate: new Date().toLocaleDateString()
+            };
+            users.push(user);
+            addUserToList(user);
+            clearForm();
+          } else {
+            showMessage('El nombre de usuario ya está registrado');
+          }
+        } else {
+          showMessage('Todos los campos son obligatorios');
+        }
+      });
+
+      function isUsernameRegistered(username) {
+        return users.some(function(user) {
+          return user.username === username;
+        });
+      }
+
+      function addUserToList(user) {
+        var row = '<tr>' +
+                    '<td>' + user.name + '</td>' +
+                    '<td>' + user.lastName + '</td>' +
+                    '<td>' + user.username + '</td>' +
+                    '<td>' + user.role + '</td>' +
+                    '<td>' + user.status + '</td>' +
+                    '<td>' + user.accessDate + '</td>' +
+                    '<td>' + user.registrationDate + '</td>' +
+                    '<td>' + getRemainingDays(user.accessDate) + '</td>' +
+                    '<td><button class="btn btn-danger btn-sm" onclick="disableUser(\'' + user.username + '\')">Inhabilitar</button> ' +
+                    '<button class="btn btn-success btn-sm" onclick="enableUser(\'' + user.username + '\')">Habilitar</button></td>' +
+                  '</tr>';
+        $('#user-list tbody').append(row);
+      }
+
+      function clearForm() {
+        $('#name').val('');
+        $('#last-name').val('');
+        $('#username').val('');
+        $('#role').val('admin');
+        $('#status-activo').prop('checked', true);
+        var today = new Date().toISOString().split('T')[0];
+        $('#access-date').val(today);
+      }
+
+      function showMessage(message) {
+        $('.error-message').text(message);
+      }
+
+      function getRemainingDays(accessDate) {
+        var today = new Date();
+        var selectedDate = new Date(accessDate);
+        var timeDiff = Math.abs(selectedDate.getTime() - today.getTime());
+        var remainingDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        return remainingDays;
+      }
+
+      window.disableUser = function(username) {
+        updateUserStatus(username, 'inactivo');
+      };
+
+      window.enableUser = function(username) {
+        updateUserStatus(username, 'activo');
+      };
+
+      function updateUserStatus(username, status) {
+        var user = users.find(function(user) {
+          return user.username === username;
+        });
+
+        if (user) {
+          user.status = status;
+          var row = $('#user-list tbody tr').filter(function() {
+            return $(this).find('td:nth-child(3)').text() === username;
+          });
+          row.find('td:nth-child(5)').text(status);
+        }
+      }
+    });
+  </script>
+</body>
